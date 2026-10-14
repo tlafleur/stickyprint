@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sticky Note Printer</title>
+  <meta name="description" content="Print on sticky notes stuck to a sheet of paper. Runs entirely in your browser.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Sticky Note Printer</h1>
+    <p class="sub">Stick notes on a sheet of paper and print on them. Everything runs in your browser; nothing is uploaded.</p>
+  </header>
+
+  <main class="app">
+    <form class="controls" id="controls" autocomplete="off" onsubmit="return false">
+      <section>
+        <h2>Sheet</h2>
+        <div class="row">
+          <span class="label">Units</span>
+          <label class="choice"><input type="radio" name="units" value="in" data-path="units"> inches</label>
+          <label class="choice"><input type="radio" name="units" value="mm" data-path="units"> mm</label>
+        </div>
+        <label class="field">
+          <span class="label">Paper</span>
+          <select data-path="paper.preset" id="paper-preset">
+            <option value="letter">Letter (8.5 × 11 in)</option>
+            <option value="a4">A4 (210 × 297 mm)</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+        <div class="pair" id="paper-custom">
+          <label class="field"><span class="label">Width <span class="unit"></span></span><input type="number" min="0" data-path="paper.width" data-length></label>
+          <label class="field"><span class="label">Height <span class="unit"></span></span><input type="number" min="0" data-path="paper.height" data-length></label>
+        </div>
+        <label class="field">
+          <span class="label">Printer margin <span class="unit"></span></span>
+          <input type="number" min="0" data-path="margin" data-length>
+          <small>Nothing is placed this close to the paper edge. Brother lasers can't print within about 0.2" (5 mm) of the edge.</small>
+        </label>
+      </section>
+
+      <section>
+        <h2>Notes</h2>
+        <label class="field">
+          <span class="label">Note size</span>
+          <select data-path="note.preset" id="note-preset">
+            <option value="3x3">3 × 3 in</option>
+            <option value="3x5">3 × 5 in</option>
+            <option value="1.5x2">1.5 × 2 in</option>
+            <option value="4x6">4 × 6 in</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+        <div class="pair" id="note-custom">
+          <label class="field"><span class="label">Width <span class="unit"></span></span><input type="number" min="0" data-path="note.width" data-length></label>
+          <label class="field"><span class="label">Height <span class="unit"></span></span><input type="number" min="0" data-path="note.height" data-length></label>
+        </div>
+        <label class="choice"><input type="checkbox" data-path="note.rotate"> Rotate 90° <span class="muted" id="note-dims"></span></label>
+        <small>The adhesive strip must be on the top edge, which feeds first. Rotate the note if your notes' strip is on the other edge.</small>
+        <div class="pair">
+          <label class="field"><span class="label">Gap between notes <span class="unit"></span></span><input type="number" min="0" data-path="gap" data-length></label>
+          <label class="field"><span class="label">Safe inset <span class="unit"></span></span><input type="number" min="0" data-path="inset" data-length></label>
+        </div>
+        <small>Content stays this far inside each note, to allow for hand placement being off by about 1 mm.</small>
+        <p class="count" id="count" aria-live="polite"></p>
+        <ul class="warnings" id="layout-warnings"></ul>
+      </section>
+
+      <section>
+        <h2>Content</h2>
+        <div class="row">
+          <span class="label">Type</span>
+          <label class="choice"><input type="radio" name="ctype" value="text" data-path="content.type"> Text</label>
+          <label class="choice"><input type="radio" name="ctype" value="image" data-path="content.type"> Image</label>
+        </div>
+
+        <div id="text-controls">
+          <label class="field">
+            <span class="label">Text</span>
+            <textarea rows="4" data-path="content.text.text"></textarea>
+          </label>
+          <div class="row">
+            <label class="field grow">
+              <span class="label">Font</span>
+              <select data-path="content.text.font">
+                <option value="helvetica">Helvetica</option>
+                <option value="times">Times</option>
+                <option value="courier">Courier</option>
+              </select>
+            </label>
+            <label class="choice"><input type="checkbox" data-path="content.text.bold"> <b>Bold</b></label>
+            <label class="choice"><input type="checkbox" data-path="content.text.italic"> <i>Italic</i></label>
+          </div>
+          <div class="row">
+            <span class="label">Horizontal</span>
+            <label class="choice"><input type="radio" name="align" value="left" data-path="content.text.align"> Left</label>
+            <label class="choice"><input type="radio" name="align" value="center" data-path="content.text.align"> Center</label>
+            <label class="choice"><input type="radio" name="align" value="right" data-path="content.text.align"> Right</label>
+          </div>
+          <div class="row">
+            <span class="label">Vertical</span>
+            <label class="choice"><input type="radio" name="valign" value="top" data-path="content.text.valign"> Top</label>
+            <label class="choice"><input type="radio" name="valign" value="middle" data-path="content.text.valign"> Middle</label>
+            <label class="choice"><input type="radio" name="valign" value="bottom" data-path="content.text.valign"> Bottom</label>
+          </div>
+          <div class="row">
+            <label class="field">
+              <span class="label">Font size override (pt)</span>
+              <input type="number" min="0" step="0.5" placeholder="Auto" data-path="content.text.manualSize" id="manual-size">
+            </label>
+            <p class="fit" id="fit-info" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <div id="image-controls">
+          <label class="field">
+            <span class="label">Image file</span>
+            <input type="file" accept="image/*" id="image-file">
+            <small>Images stay in this tab and aren't saved between visits.</small>
+          </label>
+          <div class="row">
+            <span class="label">Sizing</span>
+            <label class="choice"><input type="radio" name="fit" value="fit" data-path="content.image.fit"> Fit (whole image)</label>
+            <label class="choice"><input type="radio" name="fit" value="fill" data-path="content.image.fit"> Fill (crop to note)</label>
+          </div>
+          <label class="field">
+            <span class="label">Black-and-white processing</span>
+            <select data-path="content.image.mode">
+              <option value="grayscale">Original grayscale</option>
+              <option value="threshold">Threshold</option>
+              <option value="dither">Dither (Floyd–Steinberg)</option>
+            </select>
+          </label>
+          <label class="field" id="threshold-field">
+            <span class="label">Threshold <output id="threshold-out"></output></span>
+            <input type="range" min="0" max="255" data-path="content.image.threshold">
+          </label>
+          <label class="field">
+            <span class="label">Brightness <output id="brightness-out"></output></span>
+            <input type="range" min="-100" max="100" data-path="content.image.brightness">
+          </label>
+          <label class="field">
+            <span class="label">Contrast <output id="contrast-out"></output></span>
+            <input type="range" min="-100" max="100" data-path="content.image.contrast">
+          </label>
+        </div>
+      </section>
+
+      <section>
+        <h2>Print</h2>
+        <label class="choice"><input type="checkbox" data-path="contentOutline"> Also print a light outline on the content sheet</label>
+        <small>For a test print on plain paper: hold it against the alignment sheet up to a light to check the positions.</small>
+        <div class="buttons">
+          <button type="button" id="dl-alignment">Download alignment PDF</button>
+          <button type="button" id="dl-content">Download content PDF</button>
+        </div>
+        <p class="note">Print at Actual size / 100%. Use the manual feed slot if your printer has one. Test one sheet before printing a batch.</p>
+      </section>
+    </form>
+
+    <section class="preview" aria-label="Preview">
+      <div class="preview-head">
+        <div class="seg" role="radiogroup" aria-label="Preview">
+          <label><input type="radio" name="pmode" value="alignment" data-path="previewMode"> <span>Alignment (pass 1)</span></label>
+          <label><input type="radio" name="pmode" value="content" data-path="previewMode"> <span>Content (pass 2)</span></label>
+        </div>
+        <p class="muted" id="paper-info"></p>
+      </div>
+      <div class="preview-body">
+        <div class="sheet-wrap"><canvas id="sheet-canvas" aria-label="Sheet preview"></canvas></div>
+        <div class="note-wrap">
+          <h3>One note</h3>
+          <canvas id="note-canvas" aria-label="Single note preview"></canvas>
+          <p class="muted">Dashed line: safe inset (preview only).</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Two passes: print the alignment sheet on blank paper, stick notes inside the outlines, reload the sheet the same way, then print the content sheet.</p>
+  </footer>
+
+  <script src="vendor/jspdf-4.2.1.umd.min.js"></script>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
